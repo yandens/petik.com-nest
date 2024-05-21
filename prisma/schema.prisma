@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id   String @id @db.VarChar(10)
+  name String @db.VarChar(100)
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           String  @id @db.VarChar(10)
+  role_id      String  @db.VarChar(10)
+  email        String  @db.VarChar(255)
+  password     String  @db.VarChar(255)
+  is_verified  Boolean @db.Boolean
+  is_active    Boolean @db.Boolean
+  account_type String  @db.VarChar(100)
+
+  role Role @relation(fields: [role_id], references: [id])
+
+  user_biodata UserBiodata?
+  Booking      Booking[]
+
+  @@map("users")
+}
+
+model UserBiodata {
+  id           String @id @db.VarChar(10)
+  user_id      String @unique @db.VarChar(10)
+  first_name   String @db.VarChar(255)
+  last_name    String @db.VarChar(255)
+  phone_number String @db.VarChar(15)
+  street       String @db.VarChar(255)
+  city         String @db.VarChar(255)
+  province     String @db.VarChar(255)
+  country      String @db.VarChar(255)
+  avatar       String @db.VarChar(255)
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("users_bio")
+}
+
+model Airline {
+  id   String @id @db.VarChar(10)
+  name String @db.VarChar(255)
+  logo String @db.VarChar(255)
+
+  flights Flight[]
+
+  @@map("airlines")
+}
+
+model Flight {
+  id               String   @id @db.VarChar(10)
+  airline_id       String   @db.VarChar(10)
+  origin           String   @db.VarChar(255)
+  origin_city      String   @db.VarChar(255)
+  destination      String   @db.VarChar(255)
+  destination_city String   @db.VarChar(255)
+  departure        DateTime @db.Time()
+  arrival          DateTime @db.Time()
+
+  arline   Airline   @relation(fields: [airline_id], references: [id])
+  bookings Booking[]
+
+  @@map("flights")
+}
+
+model Booking {
+  id              String @id @db.VarChar(10)
+  user_id         String @db.VarChar(10)
+  flight_id       String @db.VarChar(10)
+  flight_class    String @db.VarChar(100)
+  total_passenger Int    @db.Integer
+  total_price     Float  @db.DoublePrecision
+  status          String @db.VarChar(100)
+
+  user            User            @relation(fields: [user_id], references: [id])
+  flight          Flight          @relation(fields: [flight_id], references: [id])
+  booking_details BookingDetail[]
+  payment         Payment?
+
+  @@map("bookings")
+}
+
+model BookingDetail {
+  id             String @id @db.VarChar(10)
+  booking_id     String @db.VarChar(10)
+  passenger_name String @db.VarChar(255)
+  passenger_age  String @db.VarChar(2)
+  nik            String @db.VarChar(20)
+  seat_number    String @db.VarChar(10)
+  qr_code        String @db.VarChar(255)
+
+  booking Booking @relation(fields: [booking_id], references: [id])
+
+  @@map("booking_details")
+}
+
+model Payment {
+  id             String @id @db.VarChar(10)
+  booking_id     String @unique @db.VarChar(10)
+  payment_method String @db.VarChar(100)
+  total_price    Float  @db.DoublePrecision
+
+  booking Booking @relation(fields: [booking_id], references: [id])
+
+  @@map("payments")
+}
