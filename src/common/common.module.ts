@@ -1,9 +1,16 @@
 import { Global, Module } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma.service';
 import { ValidationService } from './validation.service';
+import { APP_FILTER } from '@nestjs/core';
+import { ErrorFilter } from './error.filter';
+import { RandomUuidHelper } from './random-uuid.helper';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { join } from 'path';
+import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
+import { EmailHelper } from './email.helper';
 
 @Global()
 @Module({
@@ -15,8 +22,41 @@ import { ValidationService } from './validation.service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    MailerModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: configService.get('MAIL_HOST'),
+          secure: true,
+          port: 465,
+          auth: {
+            user: configService.get('MAIL_USER'),
+            pass: configService.get('MAIL_PASSWORD'),
+          },
+        },
+        defaults: {
+          from: `Petik.com <${configService.get('MAIL_USER')}>`,
+        },
+        template: {
+          dir: join(__dirname, '../../views'),
+          adapter: new EjsAdapter(),
+          options: {
+            strict: false,
+          },
+        },
+      }),
+      inject: [ConfigService],
+    }),
   ],
-  providers: [PrismaService, ValidationService],
-  exports: [PrismaService, ValidationService],
+  providers: [
+    PrismaService,
+    ValidationService,
+    {
+      provide: APP_FILTER,
+      useClass: ErrorFilter,
+    },
+    RandomUuidHelper,
+    EmailHelper,
+  ],
+  exports: [PrismaService, ValidationService, RandomUuidHelper, EmailHelper],
 })
 export class CommonModule {}
