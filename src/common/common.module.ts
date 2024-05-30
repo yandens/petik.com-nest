@@ -26,8 +26,8 @@ import { EmailHelper } from './email.helper';
       useFactory: (configService: ConfigService) => ({
         transport: {
           host: configService.get('MAIL_HOST'),
-          secure: true,
-          port: 465,
+          secure: false,
+          port: Number(configService.get('MAIL_PORT')),
           auth: {
             user: configService.get('MAIL_USER'),
             pass: configService.get('MAIL_PASSWORD'),
@@ -37,7 +37,7 @@ import { EmailHelper } from './email.helper';
           from: `Petik.com <${configService.get('MAIL_USER')}>`,
         },
         template: {
-          dir: join(__dirname, '../../views'),
+          dir: join(__dirname, '..', '..', 'views'),
           adapter: new EjsAdapter(),
           options: {
             strict: false,

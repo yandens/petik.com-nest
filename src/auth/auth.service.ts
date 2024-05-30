@@ -36,7 +36,7 @@ export class AuthService {
       where: { email: registerRequest.email },
     });
     if (totalSameEmail !== 0)
-      throw new HttpException('Username already exist', 400);
+      throw new HttpException('Email already exist', 400);
 
     // check password and confirm password -> must be same
     if (registerRequest.password !== registerRequest.confirmPassword)
@@ -54,7 +54,7 @@ export class AuthService {
     const user = await this.prismaService.user.create({
       data: {
         id: this.randomUuidHelper.generateRandomId(),
-        role_id: role.id!,
+        role_id: role.id,
         email: registerRequest.email,
         password: encryptedPassword,
         is_verified: false,
@@ -65,6 +65,11 @@ export class AuthService {
 
     // send email to registered user for verify email
     const verifyLink = `${this.configService.get('APP_LINK')}/auth/verify/${this.randomUuidHelper.generateRandomString()}`;
-    await this.emailHelper.sendEmail(user, 'Verify Email', verifyLink);
+    await this.emailHelper.sendEmail(
+      user,
+      'Verify Email',
+      './verify-email',
+      verifyLink,
+    );
   }
 }
