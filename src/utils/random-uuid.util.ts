@@ -2,7 +2,7 @@ import ShortUniqueId from 'short-unique-id';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class RandomUuidHelper {
+export class RandomUuidUtil {
   generateRandomId(): string {
     const { randomUUID } = new ShortUniqueId({ length: 5 });
     return randomUUID();
