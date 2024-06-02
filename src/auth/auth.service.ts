@@ -6,8 +6,8 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { RegisterRequest } from '../model/auth.model';
 import { AuthValidation } from './auth.validation';
 import * as bcrypt from 'bcrypt';
-import { RandomUuidHelper } from '../common/random-uuid.helper';
-import { EmailHelper } from '../common/email.helper';
+import { RandomUuidUtil } from '../utils/random-uuid.util';
+import { EmailUtil } from '../utils/email.util';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -17,8 +17,8 @@ export class AuthService {
     private validationService: ValidationService,
     private prismaService: PrismaService,
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
-    private randomUuidHelper: RandomUuidHelper,
-    private emailHelper: EmailHelper,
+    private randomUuidUtil: RandomUuidUtil,
+    private emailUtil: EmailUtil,
   ) {}
 
   async register(request: RegisterRequest) {
@@ -53,7 +53,7 @@ export class AuthService {
     // insert the user data into database
     const user = await this.prismaService.user.create({
       data: {
-        id: this.randomUuidHelper.generateRandomId(),
+        id: this.randomUuidUtil.generateRandomId(),
         role_id: role.id,
         email: registerRequest.email,
         password: encryptedPassword,
@@ -64,8 +64,8 @@ export class AuthService {
     });
 
     // send email to registered user for verify email
-    const verifyLink = `${this.configService.get('APP_LINK')}/auth/verify/${this.randomUuidHelper.generateRandomString()}`;
-    await this.emailHelper.sendEmail(
+    const verifyLink = `${this.configService.get('APP_LINK')}/auth/verify/${this.randomUuidUtil.generateRandomString()}`;
+    await this.emailUtil.sendEmail(
       user,
       'Verify Email',
       './verify-email',
