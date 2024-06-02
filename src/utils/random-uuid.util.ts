@@ -3,13 +3,13 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class RandomUuidUtil {
-  generateRandomId(): string {
-    const { randomUUID } = new ShortUniqueId({ length: 5 });
-    return randomUUID();
+  private shortUniqueId: ShortUniqueId;
+
+  constructor() {
+    this.shortUniqueId = new ShortUniqueId({ length: 5 });
   }
 
-  generateRandomString(): string {
-    const { randomUUID } = new ShortUniqueId({ length: 15 });
-    return randomUUID();
+  generateRandomId(): string {
+    return this.shortUniqueId.randomUUID();
   }
 }
