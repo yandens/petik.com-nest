@@ -89,4 +89,35 @@ export class AuthService {
       verifyLink,
     );
   }
+
+  /**
+   * This method is used to verify a user's email.
+   *
+   * @async
+   * @param {string} token - The JWT token sent to the user's email.
+   * @throws {HttpException} - Throws an exception if the token is invalid or if the user is not found.
+   * @returns {Promise<void>} - Returns a promise that resolves to void.
+   */
+  async verifyEmail(token: string): Promise<string> {
+    // verify the token
+    const payload = this.jwtService.verify(token);
+    if (!payload) throw new HttpException('Invalid token', 400);
+
+    // get user by id include with role
+    const user = await this.userService.getUserById(payload.id);
+    if (!user) throw new HttpException('User not found', 404);
+
+    // check if user is already verified
+    if (user.is_verified) throw new HttpException('User already verified', 400);
+
+    // update user is_verified status
+    await this.userService.updateUser(user.id, { is_verified: true });
+
+    // generate new token and return it
+    return this.jwtService.sign({
+      id: payload.id,
+      role: payload.role,
+      email: payload.email,
+    });
+  }
 }
