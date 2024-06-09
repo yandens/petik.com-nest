@@ -4,6 +4,7 @@ import { PrismaService } from '../common/prisma.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -14,27 +15,29 @@ export class UserService {
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
   ) {}
 
-  async getUserById(id: string) {
+  async getUserById(id: string, includeQuery?: any): Promise<any> {
     // log the request
     this.logger.info(`Get user by id ${id}`);
 
     // get user by id
     return this.prismaService.user.findUnique({
       where: { id },
+      include: includeQuery,
     });
   }
 
-  async getUserByEmail(email: string) {
+  async getUserByEmail(email: string, includeQuery?: any): Promise<any> {
     // log the request
     this.logger.info(`Get user by email ${email}`);
 
     // get user by email
     return this.prismaService.user.findFirst({
       where: { email },
+      include: includeQuery,
     });
   }
 
-  async getUsers(size?: number, page?: number) {
+  async getUsers(size?: number, page?: number): Promise<User[]> {
     // log the request
     this.logger.info(`Get users with size ${size} and page ${page}`);
 
@@ -45,7 +48,7 @@ export class UserService {
     });
   }
 
-  async createUser(data: any) {
+  async createUser(data: any): Promise<User> {
     // log the request
     this.logger.info(`Create user with data ${JSON.stringify(data)}`);
 
@@ -55,7 +58,7 @@ export class UserService {
     });
   }
 
-  async updateUser(id: string, data: any) {
+  async updateUser(id: string, data: any): Promise<User> {
     // log the request
     this.logger.info(
       `Update user with id ${id} and data ${JSON.stringify(data)}`,
