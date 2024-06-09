@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterRequest } from '../model/auth.model';
+import { LoginRequest, RegisterRequest } from '../model/auth.model';
 import { WebResponse } from '../model/web.model';
 
 @Controller('/auth')
@@ -20,6 +20,15 @@ export class AuthController {
   @HttpCode(200)
   async verify(@Param('token') token: string): Promise<WebResponse<any>> {
     const response = await this.authService.verifyEmail(token);
+    return {
+      data: response,
+    };
+  }
+
+  @Post('/sign-in')
+  @HttpCode(200)
+  async login(@Body() request: LoginRequest): Promise<WebResponse<any>> {
+    const response = await this.authService.login(request);
     return {
       data: response,
     };
