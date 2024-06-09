@@ -144,7 +144,7 @@ export class AuthService {
       throw new HttpException('Please do the email verification first', 400);
 
     // check if user is register with basic way
-    if (user.account_type !== 'basic')
+    if (user.account_type.toLowerCase() !== 'basic')
       throw new HttpException(
         'You have an account with OAuth way, please login using that',
         400,
