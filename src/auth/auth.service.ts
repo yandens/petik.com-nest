@@ -3,7 +3,7 @@ import { PrismaService } from '../common/prisma.service';
 import { ValidationService } from '../common/validation.service';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { RegisterRequest } from '../model/auth.model';
+import { LoginRequest, RegisterRequest } from '../model/auth.model';
 import { AuthValidation } from './auth.validation';
 import * as bcrypt from 'bcrypt';
 import { RandomUuidUtil } from '../utils/random-uuid.util';
@@ -56,19 +56,12 @@ export class AuthService {
     // hash the password
     const encryptedPassword = await bcrypt.hash(registerRequest.password, 10);
 
-    // get role id for 'USER' role
-    const role = await this.prismaService.role.findFirst({
-      where: { name: 'USER' },
-    });
-
     // insert the user data into database
     const data = {
       id: this.randomUuidUtil.generateRandomId(),
-      role_id: role.id,
       email: registerRequest.email,
       password: encryptedPassword,
       is_verified: false,
-      is_active: true,
       account_type: 'BASIC',
     };
     const user = await this.userService.createUser(data);
@@ -76,7 +69,7 @@ export class AuthService {
     // generate token
     const token = this.jwtService.sign({
       id: user.id,
-      role: role.name,
+      role: user.role,
       email: user.email,
     });
 
@@ -99,6 +92,9 @@ export class AuthService {
    * @returns {Promise<void>} - Returns a promise that resolves to void.
    */
   async verifyEmail(token: string): Promise<string> {
+    // log the request
+    this.logger.info(`Verify email with token ${token}`);
+
     // verify the token
     const payload = this.jwtService.verify(token);
     if (!payload) throw new HttpException('Invalid token', 400);
@@ -115,9 +111,58 @@ export class AuthService {
 
     // generate new token and return it
     return this.jwtService.sign({
-      id: payload.id,
-      role: payload.role,
-      email: payload.email,
+      id: user.id,
+      role: user.role,
+      email: user.email,
+    });
+  }
+
+  /**
+   * This method is used to authenticate a user.
+   *
+   * @async
+   * @param {LoginRequest} request - The request object containing user login details.
+   * @throws {HttpException} - Throws an exception if the email or password is wrong, if the user is not verified, or if the user is registered with OAuth.
+   * @returns {Promise<string>} - Returns a promise that resolves to a JWT token.
+   */
+  async login(request: LoginRequest): Promise<string> {
+    // log the request
+    this.logger.info(`Login user with request ${JSON.stringify(request)}`);
+
+    // validate the request
+    const loginRequest: LoginRequest = this.validationService.validate(
+      AuthValidation.LOGIN,
+      request,
+    );
+
+    // get user by email
+    const user = await this.userService.getUserByEmail(loginRequest.email);
+    if (!user) throw new HttpException('Email or password is wrong', 400);
+
+    // check if user is verified
+    if (!user.is_verified)
+      throw new HttpException('Please do the email verification first', 400);
+
+    // check if user is register with basic way
+    if (user.account_type !== 'basic')
+      throw new HttpException(
+        'You have an account with OAuth way, please login using that',
+        400,
+      );
+
+    // compare password
+    const isPasswordMatch = await bcrypt.compare(
+      loginRequest.password,
+      user.password,
+    );
+    if (!isPasswordMatch)
+      throw new HttpException('Email or password is wrong', 400);
+
+    // generate token and return it
+    return this.jwtService.sign({
+      id: user.id,
+      role: user.role,
+      email: user.email,
     });
   }
 }
