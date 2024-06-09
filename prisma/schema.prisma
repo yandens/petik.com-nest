@@ -13,25 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  id   String @id @db.VarChar(10)
-  name String @db.VarChar(100)
-
-  users User[]
-
-  @@map("roles")
+enum UserRole {
+  ADMIN
+  USER
 }
 
 model User {
-  id           String  @id @db.VarChar(10)
-  role_id      String  @db.VarChar(10)
-  email        String  @db.VarChar(255)
-  password     String  @db.VarChar(255)
-  is_verified  Boolean @db.Boolean
-  is_active    Boolean @db.Boolean
-  account_type String  @db.VarChar(100)
-
-  role Role @relation(fields: [role_id], references: [id])
+  id           String   @id @db.VarChar(10)
+  role         UserRole @default(USER)
+  email        String   @db.VarChar(255)
+  password     String   @db.VarChar(255)
+  is_verified  Boolean  @db.Boolean
+  account_type String   @db.VarChar(100)
 
   user_biodata UserBiodata?
   Booking      Booking[]
@@ -40,16 +33,16 @@ model User {
 }
 
 model UserBiodata {
-  id           String @id @db.VarChar(10)
-  user_id      String @unique @db.VarChar(10)
-  first_name   String @db.VarChar(255)
-  last_name    String @db.VarChar(255)
-  phone_number String @db.VarChar(15)
-  street       String @db.VarChar(255)
-  city         String @db.VarChar(255)
-  province     String @db.VarChar(255)
-  country      String @db.VarChar(255)
-  avatar       String @db.VarChar(255)
+  id           String  @id @db.VarChar(10)
+  user_id      String  @unique @db.VarChar(10)
+  first_name   String  @db.VarChar(255)
+  last_name    String? @db.VarChar(255)
+  phone_number String  @db.VarChar(15)
+  street       String  @db.VarChar(255)
+  city         String  @db.VarChar(255)
+  province     String  @db.VarChar(255)
+  country      String  @db.VarChar(255)
+  avatar       String? @db.VarChar(255)
 
   user User @relation(fields: [user_id], references: [id])
 
