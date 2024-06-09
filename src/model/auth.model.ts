@@ -3,3 +3,8 @@ export class RegisterRequest {
   password: string;
   confirmPassword: string;
 }
+
+export class LoginRequest {
+  email: string;
+  password: string;
+}
