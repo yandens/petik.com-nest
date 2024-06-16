@@ -1,9 +1,14 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { PrismaService } from '../common/prisma.service';
 import { ValidationService } from '../common/validation.service';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { LoginRequest, RegisterRequest } from '../model/auth.model';
+import {
+  ForgotPasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
+} from '../model/auth.model';
 import { AuthValidation } from './auth.validation';
 import * as bcrypt from 'bcrypt';
 import { RandomUuidUtil } from '../utils/random-uuid.util';
@@ -17,7 +22,6 @@ export class AuthService {
   constructor(
     private configService: ConfigService,
     private validationService: ValidationService,
-    private prismaService: PrismaService,
     private userService: UserService,
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
     private jwtService: JwtService,
@@ -67,11 +71,14 @@ export class AuthService {
     const user = await this.userService.createUser(data);
 
     // generate token
-    const token = this.jwtService.sign({
-      id: user.id,
-      role: user.role,
-      email: user.email,
-    });
+    const token = this.jwtService.sign(
+      {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      },
+      { expiresIn: '300s' },
+    );
 
     // send email to registered user for verify email
     const verifyLink = `${this.configService.get('APP_LINK')}/auth/verify/${token}`;
@@ -87,16 +94,20 @@ export class AuthService {
    * This method is used to verify a user's email.
    *
    * @async
-   * @param {string} token - The JWT token sent to the user's email.
+   * @param {VerifyEmailRequest} request - The request object containing user verify email details.
    * @throws {HttpException} - Throws an exception if the token is invalid or if the user is not found.
    * @returns {Promise<void>} - Returns a promise that resolves to void.
    */
-  async verifyEmail(token: string): Promise<string> {
+  async verifyEmail(request: VerifyEmailRequest): Promise<string> {
     // log the request
-    this.logger.info(`Verify email with token ${token}`);
+    this.logger.info(`Verify email with request ${JSON.stringify(request)}`);
+
+    // validate the request
+    const verifyEmailRequest: VerifyEmailRequest =
+      this.validationService.validate(AuthValidation.VERIFY_EMAIL, request);
 
     // verify the token
-    const payload = this.jwtService.verify(token);
+    const payload = this.jwtService.verify(verifyEmailRequest.token);
     if (!payload) throw new HttpException('Invalid token', 400);
 
     // get user by id include with role
@@ -164,5 +175,85 @@ export class AuthService {
       role: user.role,
       email: user.email,
     });
+  }
+
+  /**
+   * This method is used to handle the forgot password request.
+   *
+   * @async
+   * @param {ForgotPasswordRequest} request - The request object containing user forgot password details.
+   * @throws {HttpException} - Throws an exception if the email is not found.
+   * @returns {Promise<void>} - Returns a promise that resolves to void.
+   */
+  async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
+    // log the request
+    this.logger.info(`Forgot password with request ${JSON.stringify(request)}`);
+
+    // validate the request
+    const forgotPasswordRequest: ForgotPasswordRequest =
+      this.validationService.validate(AuthValidation.FORGOT_PASSWORD, request);
+
+    // get user by email
+    const user = await this.userService.getUserByEmail(
+      forgotPasswordRequest.email,
+    );
+    if (!user) throw new HttpException('Email not found', 404);
+
+    // generate token
+    const token = this.jwtService.sign(
+      {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      },
+      { expiresIn: '300s' },
+    );
+
+    // send email to user for reset password
+    const resetLink = `${this.configService.get('APP_LINK')}/auth/reset-password/${token}`;
+    await this.emailUtil.sendEmail(
+      user,
+      'Reset Password',
+      './reset-password',
+      resetLink,
+    );
+  }
+
+  /**
+   * This method is used to handle the forgot password request.
+   *
+   * @async
+   * @param {ResetPasswordRequest} request - The request object containing user reset password details.
+   * @throws {HttpException} - Throws an exception if the email is not found.
+   * @returns {Promise<void>} - Returns a promise that resolves to void.
+   */
+  async resetPassword(request: ResetPasswordRequest): Promise<void> {
+    // log the request
+    this.logger.info(`Reset password with request ${JSON.stringify(request)}`);
+
+    // validate the request
+    const resetPasswordRequest: ResetPasswordRequest =
+      this.validationService.validate(AuthValidation.RESET_PASSWORD, request);
+
+    // verify the token
+    const payload = this.jwtService.verify(resetPasswordRequest.token);
+    if (!payload) throw new HttpException('Invalid token', 400);
+
+    // check if password and confirm password is match
+    if (resetPasswordRequest.password !== resetPasswordRequest.confirmPassword)
+      throw new HttpException('Password and confirm password is not same', 400);
+
+    // get user by id
+    const user = await this.userService.getUserById(payload.id);
+    if (!user) throw new HttpException('User not found', 404);
+
+    // hash the password
+    const encryptedPassword = await bcrypt.hash(
+      resetPasswordRequest.password,
+      10,
+    );
+
+    // update the user password
+    await this.userService.updateUser(user.id, { password: encryptedPassword });
   }
 }
