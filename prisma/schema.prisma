@@ -18,13 +18,18 @@ enum UserRole {
   USER
 }
 
+enum AccountType {
+  BASIC
+  GOOGLE
+}
+
 model User {
-  id           String   @id @db.VarChar(10)
-  role         UserRole @default(USER)
-  email        String   @db.VarChar(255)
-  password     String   @db.VarChar(255)
-  is_verified  Boolean  @db.Boolean
-  account_type String   @db.VarChar(100)
+  id           String      @id @db.VarChar(10)
+  role         UserRole    @default(USER)
+  email        String      @db.VarChar(255)
+  password     String      @db.VarChar(255)
+  is_verified  Boolean     @default(false) @db.Boolean
+  account_type AccountType @default(BASIC)
 
   user_biodata UserBiodata?
   Booking      Booking[]
