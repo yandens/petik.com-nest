@@ -65,8 +65,6 @@ export class AuthService {
       id: this.randomUuidUtil.generateRandomId(),
       email: registerRequest.email,
       password: encryptedPassword,
-      is_verified: false,
-      account_type: 'BASIC',
     };
     const user = await this.userService.createUser(data);
 

@@ -9,7 +9,7 @@ import {
 } from '../model/auth.model';
 import { WebResponse } from '../model/web.model';
 
-@Controller('/auth')
+@Controller('/api/auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
