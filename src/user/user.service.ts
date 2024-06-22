@@ -139,7 +139,7 @@ export class UserService {
 
     // update user bio
     const userBio = await this.prismaService.userBiodata.update({
-      where: { id: updateRequest.id, user_id: user.id },
+      where: { user_id: user.id },
       data: updateRequest,
     });
 
