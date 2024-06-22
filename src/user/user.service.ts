@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
-import { ValidationService } from '../common/validation.service';
-import { PrismaService } from '../common/prisma.service';
+import { ValidationService } from '../common/service/validation.service';
+import { PrismaService } from '../common/service/prisma.service';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
@@ -8,6 +8,7 @@ import { User } from '@prisma/client';
 import {
   CreateUserBioRequest,
   toUserBioResponse,
+  UpdateUserBioRequest,
   UserBioResponse,
 } from '../model/user.model';
 import { UserValidation } from './user.validation';
@@ -101,6 +102,46 @@ export class UserService {
       id: this.randomUuidUtil.generateRandomId(),
     };
     const userBio = await this.prismaService.userBiodata.create({ data });
+
+    return toUserBioResponse(userBio);
+  }
+
+  async getUserBio(user: User): Promise<UserBioResponse> {
+    // log the request
+    this.logger.info(`Get user bio by user id ${user.id}`);
+
+    // get user bio
+    const userBio = await this.prismaService.userBiodata.findFirst({
+      where: { user_id: user.id },
+    });
+    if (!userBio) throw new HttpException('User bio not found', 404);
+
+    return toUserBioResponse(userBio);
+  }
+
+  async updateUserBio(
+    user: User,
+    request: UpdateUserBioRequest,
+  ): Promise<UserBioResponse> {
+    // log the request
+    this.logger.info(
+      `Update user bio by user id ${user.id} with data ${JSON.stringify(request)}`,
+    );
+
+    // validate the request
+    const updateRequest: UpdateUserBioRequest = this.validationService.validate(
+      UserValidation.CREATE_USER_BIO,
+      request,
+    );
+
+    // check user bio if exists
+    await this.getUserBio(user);
+
+    // update user bio
+    const userBio = await this.prismaService.userBiodata.update({
+      where: { id: updateRequest.id, user_id: user.id },
+      data: updateRequest,
+    });
 
     return toUserBioResponse(userBio);
   }

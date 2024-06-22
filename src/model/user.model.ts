@@ -23,6 +23,17 @@ export class UserBioResponse {
   avatar?: string;
 }
 
+export class UpdateUserBioRequest {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+  street?: string;
+  city?: string;
+  province?: string;
+  country?: string;
+}
+
 export function toUserBioResponse(biodata: UserBiodata): UserBioResponse {
   return {
     id: biodata.id,
