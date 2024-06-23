@@ -1,4 +1,13 @@
-import { Body, Controller, Get, HttpCode, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import {
   CreateUserBioRequest,
@@ -8,6 +17,8 @@ import {
 import { Auth } from '../common/decorator/auth.decorator';
 import { User } from '@prisma/client';
 import { WebResponse } from '../model/web.model';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { FileValidationPipe } from './user.validation';
 
 @Controller('/api/user')
 export class UserController {
@@ -41,6 +52,19 @@ export class UserController {
     @Body() request: UpdateUserBioRequest,
   ): Promise<WebResponse<UserBioResponse>> {
     const result = await this.userService.updateUserBio(user, request);
+    return {
+      data: result,
+    };
+  }
+
+  @Patch('/avatar')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(
+    @Auth() user: User,
+    @UploadedFile(new FileValidationPipe()) avatar: Express.Multer.File,
+  ): Promise<WebResponse<UserBioResponse>> {
+    const result = await this.userService.uploadAvatar(user, avatar);
     return {
       data: result,
     };

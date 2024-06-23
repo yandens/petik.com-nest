@@ -1,4 +1,3 @@
-import { ConfigService } from '@nestjs/config';
 import { ValidationService } from '../common/service/validation.service';
 import { PrismaService } from '../common/service/prisma.service';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
@@ -13,15 +12,16 @@ import {
 } from '../model/user.model';
 import { UserValidation } from './user.validation';
 import { RandomUuidUtil } from '../utils/random-uuid.util';
+import { ImagekitUtil } from '../utils/imagekit.util';
 
 @Injectable()
 export class UserService {
   constructor(
-    private configService: ConfigService,
     private validationService: ValidationService,
     private prismaService: PrismaService,
     @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
     private randomUuidUtil: RandomUuidUtil,
+    private imagekitUtil: ImagekitUtil,
   ) {}
 
   async getUserById(id: string, includeQuery?: any): Promise<any> {
@@ -130,7 +130,7 @@ export class UserService {
 
     // validate the request
     const updateRequest: UpdateUserBioRequest = this.validationService.validate(
-      UserValidation.CREATE_USER_BIO,
+      UserValidation.UPDATE_USER_BIO,
       request,
     );
 
@@ -144,5 +144,30 @@ export class UserService {
     });
 
     return toUserBioResponse(userBio);
+  }
+
+  async uploadAvatar(
+    user: User,
+    file: Express.Multer.File,
+  ): Promise<UserBioResponse> {
+    // log the request
+    this.logger.info(`Upload avatar for user id ${user.id}`);
+
+    // check user bio if exists
+    const userBio = await this.getUserBio(user);
+
+    // delete previous avatar
+    if (userBio.avatar) await this.imagekitUtil.deleteImage(userBio.avatar);
+
+    // upload image to imagekit
+    const imageUrl = await this.imagekitUtil.uploadImage(file, '/avatars');
+
+    // update user bio
+    const updatedUserBio = await this.prismaService.userBiodata.update({
+      where: { user_id: user.id },
+      data: { avatar: imageUrl },
+    });
+
+    return toUserBioResponse(updatedUserBio);
   }
 }
