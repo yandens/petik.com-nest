@@ -24,7 +24,6 @@ export class UserBioResponse {
 }
 
 export class UpdateUserBioRequest {
-  id: string;
   first_name?: string;
   last_name?: string;
   phone_number?: string;
