@@ -5,6 +5,7 @@ import { join } from 'path';
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
 import { EmailUtil } from './email.util';
 import { RandomUuidUtil } from './random-uuid.util';
+import { ImagekitUtil } from './imagekit.util';
 
 @Global()
 @Module({
@@ -34,7 +35,7 @@ import { RandomUuidUtil } from './random-uuid.util';
       inject: [ConfigService],
     }),
   ],
-  providers: [EmailUtil, RandomUuidUtil],
-  exports: [EmailUtil, RandomUuidUtil],
+  providers: [EmailUtil, RandomUuidUtil, ImagekitUtil],
+  exports: [EmailUtil, RandomUuidUtil, ImagekitUtil],
 })
 export class UtilsModule {}
